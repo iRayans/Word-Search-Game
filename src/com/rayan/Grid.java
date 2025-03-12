@@ -4,18 +4,21 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class Grid {
 
-    private int grdSize;
+    private int gridSize;
     private char[][] contents;
     private List<Coordenate> coordenates = new ArrayList<Coordenate>();
 
+    private enum Direction {
+        HORIZONTAL, VERTICAL, DIAGONAL
+    }
 
-    private class Coordenate{
+    private class Coordenate {
         int x;
         int y;
+
         public Coordenate(int x, int y) {
             this.x = x;
             this.y = y;
@@ -23,8 +26,8 @@ public class Grid {
     }
 
     public Grid(int gridSize) {
-        this.grdSize = gridSize;
-        contents = new char[grdSize][grdSize];
+        this.gridSize = gridSize;
+        contents = new char[this.gridSize][this.gridSize];
 
         // Initialize the grid with '_' characters
         for (int i = 0; i < gridSize; i++) {
@@ -36,15 +39,29 @@ public class Grid {
     }
 
     public void fillGrid(List<String> words) {
-        // Place the first letter of each word at a random position in the grid
+        Collections.shuffle(coordenates);
         for (String word : words) {
-            Collections.shuffle(coordenates);
             for (Coordenate coordenate : coordenates) {
                 int x = coordenate.x;
                 int y = coordenate.y;
-                if(doFits(word,coordenate)) {
-                    for (char c : word.toCharArray()) {
-                        contents[x][y++] = c;
+                Direction selectedDirection = getDirectionForFit(word, coordenate);
+                if (selectedDirection != null) {
+                    switch (selectedDirection) {
+                        case HORIZONTAL:
+                            for (char c : word.toCharArray()) {
+                                contents[x][y++] = c;
+                            }
+                            break;
+                        case VERTICAL:
+                            for (char c : word.toCharArray()) {
+                                contents[x++][y] = c;
+                            }
+                            break;
+                        case DIAGONAL:
+                            for (char c : word.toCharArray()) {
+                                contents[x++][y++] = c;
+                            }
+                            break;
                     }
                     break;
                 }
@@ -55,20 +72,50 @@ public class Grid {
 
     public void displayGrid() {
         // Print the populated grid
-        for (int i = 0; i < grdSize; i++) {
-            for (int j = 0; j < grdSize; j++) {
+        for (int i = 0; i < gridSize; i++) {
+            for (int j = 0; j < gridSize; j++) {
                 System.out.print(contents[i][j] + " ");
             }
             System.out.println();
         }
     }
 
-    private boolean doFits(String word, Coordenate coordenate) {
-        if(coordenate.y + word.length() < grdSize) {
-            for (int i = 0; i < word.length(); i++) {
-                if (contents[coordenate.x][coordenate.y + i] != '_') return false;
+    private Direction getDirectionForFit(String word, Coordenate coordenate) {
+        List<Direction> directions = Arrays.asList(Direction.values());
+        Collections.shuffle(directions);
+        for (Direction direction : directions) {
+            if (doesFits(word, coordenate, direction)) {
+                return direction;
             }
+        }
+        return null;
+    }
+
+    private boolean doesFits(String word, Coordenate coordenate, Direction direction) {
+        int wordLength = word.length();
+
+        switch (direction) {
+            case HORIZONTAL:
+                // If word length above the grid size horizontal return false
+                if (coordenate.y + wordLength > gridSize) return false;
+                for (int i = 0; i < wordLength; i++) {
+                    if (contents[coordenate.x][coordenate.y + i] != '_') return false;
+                }
+                break;
+            case VERTICAL:
+                if (coordenate.x + wordLength > gridSize) return false;
+                for (int i = 0; i < wordLength; i++) {
+                    if (contents[coordenate.x + i][coordenate.y] != '_') return false;
+                }
+                break;
+            case DIAGONAL:
+                if (coordenate.x + wordLength > gridSize || coordenate.y + wordLength > gridSize) return false;
+                for (int i = 0; i < wordLength; i++) {
+                    if (contents[coordenate.x + i][coordenate.y + i] != '_') return false;
+                }
+                break;
         }
         return true;
     }
+
 }
